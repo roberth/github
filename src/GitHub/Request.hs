@@ -135,10 +135,14 @@ executeRequestWithMgr mgr auth req = runExceptT $ do
     performHttpReq' httpReq Query {} = do
         res <- httpLbs' httpReq
         parseResponse res
-    performHttpReq' httpReq (PagedQuery _ _ l) =
+    performHttpReq' httpReq (PagedQuery _ _ l) = do
         performPagedRequest httpLbs' predicate httpReq
       where
         predicate v = lessFetchCount (V.length v) l
+    performHttpReq' httpReq (PagedQueryS _ _ l) = do
+        performPagedRequest httpLbs' predicate httpReq
+      where
+        predicate v = lessFetchCount (length v) l
     performHttpReq' httpReq (Command m _ _) = do
         res <- httpLbs' httpReq
         case m of
@@ -185,10 +189,14 @@ executeRequestWithMgr' mgr req = runExceptT $ do
     performHttpReq' httpReq Query {} = do
         res <- httpLbs' httpReq
         parseResponse res
-    performHttpReq' httpReq (PagedQuery _ _ l) =
+    performHttpReq' httpReq (PagedQuery _ _ l) = do
         performPagedRequest httpLbs' predicate httpReq
       where
         predicate v = lessFetchCount (V.length v) l
+    performHttpReq' httpReq (PagedQueryS _ _ l) = do
+        performPagedRequest httpLbs' predicate httpReq
+      where
+        predicate v = lessFetchCount (length v) l
 
 -- | Helper for picking between 'executeRequest' and 'executeRequest''.
 --
@@ -256,6 +264,14 @@ makeHttpSimpleRequest auth r = case r of
             . setAuthRequest auth
             . setQueryString qs
             $ req
+    PagedQueryS paths qs _ -> do
+        req <- parseUrl' $ url paths
+        return
+            $ setReqHeaders
+            . setCheckStatus Nothing
+            . setAuthRequest auth
+            . setQueryString qs
+            $ req
     Command m paths body -> do
         req <- parseUrl' $ url paths
         return
@@ -290,7 +306,7 @@ makeHttpSimpleRequest auth r = case r of
     reqHeaders :: RequestHeaders
     reqHeaders = maybe [] getOAuthHeader auth
         <> [("User-Agent", "github.hs/0.7.4")]
-        <> [("Accept", "application/vnd.github.preview")]
+        <> [("Accept", "application/vnd.github.preview, application/vnd.github.machine-man-preview+json")]
 
     setBody :: LBS.ByteString -> HTTP.Request -> HTTP.Request
     setBody body req = req { requestBody = RequestBodyLBS body }
@@ -302,6 +318,7 @@ makeHttpSimpleRequest auth r = case r of
     getOAuthHeader :: Auth -> RequestHeaders
     getOAuthHeader (OAuth token)             = [("Authorization", "token " <> token)]
     getOAuthHeader (EnterpriseOAuth _ token) = [("Authorization", "token " <> token)]
+    getOAuthHeader (JWTAuth token)           = [("Authorization", "Bearer " <> token)]
     getOAuthHeader _                         = []
 
 -- | Query @Link@ header with @rel=next@ from the request headers.
