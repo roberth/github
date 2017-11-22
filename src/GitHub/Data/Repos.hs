@@ -15,6 +15,7 @@ import GitHub.Data.Definitions
 import GitHub.Data.Id          (Id)
 import GitHub.Data.Name        (Name)
 import GitHub.Data.URL         (URL)
+import GitHub.Data.Collection  (CollectionName(..))
 import GitHub.Internal.Prelude
 import Prelude ()
 
@@ -257,3 +258,8 @@ instance FromJSON a => FromJSON (HM.HashMap Language a) where
         mapKey f = HM.fromList . map (first f) . HM.toList
 #endif
 #endif
+
+-- CollectionName instances
+
+instance CollectionName Repo where
+  collectionName _ = "repositories"
