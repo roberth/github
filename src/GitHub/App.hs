@@ -23,6 +23,7 @@ import qualified Data.ByteString.Lazy as LBS
 import           Data.ByteString (ByteString)
 
 import Data.Maybe
+import Data.String
 import Data.Time
 import Control.Exception
 import Control.Lens
@@ -74,18 +75,19 @@ makeToken privateKey = do
         -- minus one again for off by one error
 
       jwk = JWK.fromRSA privateKey
-      jwsHeader = JWS.newJWSHeader (JWS.Protected, JWS.RS256)
+      jwsHeader = JWS.newJWSHeader ((), JWS.RS256)
       claimsSet = JWT.emptyClaimsSet
                           -- FIXME: read from environment
-                   & JWT.claimIss .~ Just (JWT.fromString "6881") -- See
+                   & JWT.claimIss .~ Just (fromString "6881") -- See
                        -- https://github.com/settings/apps/lambda-ci-local-instance
                        -- "About" / "ID:"
                    & JWT.claimIat .~ Just nowSeconds
                    & JWT.claimExp .~ Just expSeconds
 
   result <- runExceptT $ do
-    jwt <- JWT.createJWSJWT jwk jwsHeader claimsSet
-    Compact.encodeCompact jwt
+    jwt <- JWT.signClaims jwk jwsHeader claimsSet
+    pure $ Compact.encodeCompact jwt
+
   case result :: Either JWT.JWTError LBS.ByteString of
     Left e -> throw (userError (show e))
     Right lbs -> pure (lbs ^. strict)

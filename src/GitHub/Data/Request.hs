@@ -13,7 +13,7 @@ module GitHub.Data.Request (
     Request (..),
     SimpleRequest (..),
     -- * Smart constructors
-    query, pagedQuery, pagedQueryS, command,
+    query, pagedQuery, pagedQueryS, command, appCommand,
     -- * Auxiliary types
     RW(..),
     StatusMap,
@@ -150,7 +150,7 @@ data SimpleRequest (k :: RW) a where
     Query        :: Paths -> QueryString -> SimpleRequest k a
     PagedQuery   :: Paths -> QueryString -> FetchCount -> SimpleRequest k (Vector a)
     PagedQueryS  :: (Semigroup (t a), Foldable t) => Paths -> QueryString -> FetchCount -> SimpleRequest k (t a)
-    Command      :: CommandMethod a -> Paths -> LBS.ByteString -> SimpleRequest 'RW a
+    Command      :: CommandMethod a -> Paths -> LBS.ByteString -> SimpleRequest k a
   deriving (Typeable)
 
 -------------------------------------------------------------------------------
@@ -181,6 +181,9 @@ pagedQueryS ps qs fc = SimpleQuery (PagedQueryS ps qs fc)
 
 command :: FromJSON a => CommandMethod a -> Paths -> LBS.ByteString -> Request 'RW a
 command m ps body = SimpleQuery (Command m ps body)
+
+appCommand :: FromJSON a => CommandMethod a -> Paths -> LBS.ByteString -> Request 'AA a
+appCommand m ps body = SimpleQuery (Command m ps body)
 
 -------------------------------------------------------------------------------
 -- Instances

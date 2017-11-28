@@ -57,3 +57,15 @@ instance FromJSON Installation where
 
 instance CollectionName Installation where
   collectionName _ = "installations"
+
+
+data InstallationToken = InstallationToken
+  { installationTokenToken :: Text
+  , installationTokenExpiresAt :: UTCTime
+  }
+  deriving (Show, Data, Typeable, Eq, Ord, Generic)
+
+instance FromJSON InstallationToken where
+  parseJSON = withObject "Installation" $ \o -> InstallationToken
+    <$> o .: "token"
+    <*> o .: "expires_at"
