@@ -70,9 +70,10 @@ makeToken :: PrivateKey -> IO ByteString
 makeToken privateKey = do
   now <- floorTime <$> getCurrentTime
   let nowSeconds = JWT.NumericDate now
-      expSeconds = JWT.NumericDate ((60 * 10 - 2) `addUTCTime` now)
-        -- minus one as an error margin for leap seconds (if recognized by the server)
-        -- minus one again for off by one error
+      -- 5 minute expiry. GitHub requires <= 10 minute expiry.
+      -- Decreasing to 7 minutes may provide some extra tolerance
+      -- for clock skew.
+      expSeconds = JWT.NumericDate ((60 * 7) `addUTCTime` now)
 
       jwk = JWK.fromRSA privateKey
       jwsHeader = JWS.newJWSHeader ((), JWS.RS256)
